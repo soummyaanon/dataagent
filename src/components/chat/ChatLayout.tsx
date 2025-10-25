@@ -28,7 +28,7 @@ import {
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
 import { Action, Actions } from "@/components/ai-elements/actions";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { Response } from "@/components/ai-elements/response";
 import { CopyIcon, GlobeIcon, RefreshCcwIcon } from "lucide-react";
@@ -51,6 +51,8 @@ import {
   ToolOutput,
 } from "@/components/ai-elements/tool";
 import { Loader } from "@/components/ai-elements/loader";
+import { useCanvasStore } from "@/hooks/useCanvasStore";
+import type { VisualizationConfig } from "@/types/visualization";
 
 const models = [
   {
@@ -59,12 +61,82 @@ const models = [
   },
 ];
 
+const isVisualizationConfig = (
+  value: unknown
+): value is VisualizationConfig => {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as VisualizationConfig;
+  return (
+    typeof candidate.type === "string" &&
+    typeof candidate.title === "string" &&
+    Array.isArray(candidate.data)
+  );
+};
+
 const ChatBotDemo = () => {
   const [input, setInput] = useState("");
   const [model, setModel] = useState<string>("gpt-4.1");
   const [webSearch, setWebSearch] = useState(false);
   const { messages, sendMessage, status, regenerate } = useChat();
-  console.log(messages);
+  const addVisualization = useCanvasStore((state) => state.addVisualization);
+  const processedToolResults = useRef(new Set<string>());
+
+  useEffect(() => {
+    messages.forEach((message) => {
+      if (message.role !== "assistant") {
+        return;
+      }
+
+      message.parts.forEach((part, index) => {
+        const key = `${message.id}-${index}`;
+
+        if (
+          processedToolResults.current.has(key) ||
+          !part.type?.startsWith("tool-") ||
+          !("output" in part) ||
+          !part.output ||
+          typeof part.output !== "object"
+        ) {
+          return;
+        }
+
+        const payload = part.output as Record<string, unknown>;
+        const visualizations: VisualizationConfig[] = [];
+
+        if (
+          "visualization" in payload &&
+          isVisualizationConfig(payload.visualization)
+        ) {
+          visualizations.push(payload.visualization);
+        }
+
+        if (
+          "visualizations" in payload &&
+          Array.isArray(payload.visualizations)
+        ) {
+          payload.visualizations.forEach((viz) => {
+            if (isVisualizationConfig(viz)) {
+              visualizations.push(viz);
+            }
+          });
+        }
+
+        if (visualizations.length === 0) {
+          return;
+        }
+
+        visualizations.forEach((viz) => {
+          const { id: _id, ...rest } = viz;
+          addVisualization(rest);
+        });
+
+        processedToolResults.current.add(key);
+      });
+    });
+  }, [messages, addVisualization]);
 
   const handleSubmit = (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);
@@ -90,9 +162,9 @@ const ChatBotDemo = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 relative size-full h-screen">
-      <div className="flex flex-col h-full">
-        <Conversation className="h-full">
+    <div className="relative mx-auto flex h-full w-full max-w-4xl flex-col p-6">
+      <div className="flex h-full flex-col">
+        <Conversation className="flex-1">
           <ConversationContent>
             {messages.map((message) => (
               <div key={message.id}>

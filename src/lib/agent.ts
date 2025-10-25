@@ -48,8 +48,8 @@ import {
   FinalizeReport,
   FormatResults,
   SanityCheck,
-  VisualizeData,
 } from "./tools/reporting";
+import { visualizationTools } from "./tools/visualization-tools";
 import { PLANNING_SPECIALIST_SYSTEM_PROMPT } from "./prompts/planning";
 import { BUILDING_SPECIALIST_SYSTEM_PROMPT } from "./prompts/building";
 import { EXECUTION_MANAGER_SYSTEM_PROMPT } from "./prompts/execution";
@@ -106,6 +106,7 @@ export async function runAgent({
       FormatResults,
       ExplainResults,
       FinalizeReport,
+      ...visualizationTools,
     },
     stopWhen: [
       (ctx) =>
@@ -196,9 +197,13 @@ export async function runAgent({
         activeTools: [
           "SanityCheck",
           "FormatResults",
-          // "VisualizeData",
           "ExplainResults",
           "FinalizeReport",
+          "generateBarChart",
+          "generateLineChart",
+          "generatePieChart",
+          "generateScatterPlot",
+          "autoSelectVisualization",
         ],
       };
     },
