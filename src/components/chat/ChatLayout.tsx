@@ -54,22 +54,14 @@ import { Loader } from "@/components/ai-elements/loader";
 
 const models = [
   {
-    name: "GPT-5",
-    value: "openai/gpt-5",
-  },
-  {
-    name: "Moonshot Kimi K2",
-    value: "moonshotai/kimi-k2-0905",
-  },
-  {
-    name: "GLM 4.6",
-    value: "zai/glm-4.6",
+    name: "GPT-4.1",
+    value: "gpt-4.1",
   },
 ];
 
 const ChatBotDemo = () => {
   const [input, setInput] = useState("");
-  const [model, setModel] = useState<string>(models[0].value);
+  const [model, setModel] = useState<string>("gpt-4.1");
   const [webSearch, setWebSearch] = useState(false);
   const { messages, sendMessage, status, regenerate } = useChat();
   console.log(messages);
