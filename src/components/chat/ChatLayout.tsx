@@ -200,7 +200,7 @@ const ChatBotDemo = () => {
 
                   {/* Show Chain of Thought for multi-step reasoning - hide when FinalizeReport or ClarifyIntent is complete */}
                   {message.role === "assistant" && hasMultipleTools && !finalizeReportComplete && !clarifyIntentComplete && (
-                    <ChainOfThought className="mb-4" defaultOpen={isStreaming}>
+                    <ChainOfThought className="mb-4" defaultOpen={false}>
                       <ChainOfThoughtHeader>
                         {isStreaming ? (
                           <Shimmer>{getPhaseLabel(currentPhase)}</Shimmer>

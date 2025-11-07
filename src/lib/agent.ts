@@ -48,6 +48,7 @@ import {
   FinalizeReport,
   FormatResults,
   SanityCheck,
+  VisualizeData,
 } from "./tools/reporting";
 import { visualizationTools } from "./tools/visualization-tools";
 import { PLANNING_SPECIALIST_SYSTEM_PROMPT } from "./prompts/planning";
@@ -98,6 +99,7 @@ export async function runAgent({
       ExecuteSQLWithRepair,
       SanityCheck,
       FormatResults,
+      VisualizeData,
       ExplainResults,
       FinalizeReport,
       ...visualizationTools,

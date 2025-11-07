@@ -169,6 +169,11 @@ export const ReasoningContent = memo(
   ({ className, children, ...props }: ReasoningContentProps) => {
     const { isStreaming } = useReasoning();
     
+    // Convert children to string for Streamdown component
+    const content = children 
+      ? (typeof children === 'string' ? children : String(children))
+      : (isStreaming ? "Thinking..." : "");
+    
     return (
       <CollapsibleContent
         className={cn(
@@ -179,7 +184,7 @@ export const ReasoningContent = memo(
         {...props}
       >
         <Response className="grid gap-2 whitespace-pre-wrap">
-          {children || (isStreaming ? "Thinking..." : "")}
+          {content}
         </Response>
       </CollapsibleContent>
     );
