@@ -9,10 +9,13 @@ oss-data-analyst is an intelligent AI agent that converts natural language quest
 - **Multi-Phase AI Agent**: Planning → Building → Execution → Reporting workflow
 - **Real-time Streaming**: Live updates during query processing
 - **Smart Data Analysis**: Automated insights and visualizations
+- **Chart Generation**: AI-powered automatic chart creation (bar, line, pie, scatter, area charts)
+- **Interactive Visualizations**: Charts rendered on interactive canvas with drag-and-drop
+- **Dark Mode**: Beautiful dark theme with persistent preferences
 - **SQL Validation**: Syntax checking and security policy enforcement
 - **Natural Language**: Ask questions in plain English
-- **Modern UI**: Built with Next.js, React, and TailwindCSS
-- **Extensible Tools**: Easy to add custom tools and capabilitiets
+- **Modern UI**: Built with Next.js 16, React 19, and TailwindCSS v4
+- **Extensible Tools**: Easy to add custom tools and capabilities
 
 ## 📖 Documentation
 
