@@ -8,7 +8,7 @@ let db: Database.Database | null = null;
  */
 export function getDatabase(): Database.Database {
   if (!db) {
-    const dbPath = join(process.cwd(), "data", "oss-data-analyst.db");
+    const dbPath = join(process.cwd(), "data", "data-agent.db");
     console.log(`[SQLite] Connecting to database at: ${dbPath}`);
     db = new Database(dbPath);
     db.pragma("foreign_keys = ON");

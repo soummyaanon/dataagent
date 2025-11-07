@@ -1,5 +1,5 @@
 /**
- * Operational constants for the oss-data-analyst API
+ * Operational constants for the Data Agent API
  * These are derived from config but exposed as constants for convenience
  */
 

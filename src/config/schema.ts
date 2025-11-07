@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Complete environment variable schema for oss-data-analyst API
+ * Complete environment variable schema for Data Agent API
  * Single source of truth for all configuration
  */
 export const configSchema = z
@@ -29,7 +29,7 @@ export const configSchema = z
     SNOWFLAKE_POOL_MAX: z.string().transform(Number).default(10),
     SNOWFLAKE_APPLICATION: z
       .string()
-      .default("oss-data-analyst-api")
+      .default("data-agent-api")
       .optional(),
     SNOWFLAKE_CLIENT_SESSION_KEEP_ALIVE: z
       .string()

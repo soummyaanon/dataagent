@@ -1,9 +1,9 @@
 {
-  "name": "oss-data-analyst",
+  "name": "data-agent",
   "version": "0.1.0",
-  "private": false,
+  "private": true,
   "type": "module",
-  "description": "An open-source AI data science agent that converts natural language to SQL queries and provides intelligent data analysis",
+  "description": "AI-powered data science agent that converts natural language to SQL queries and provides intelligent data analysis",
   "keywords": [
     "ai",
     "data-science",
@@ -15,16 +15,8 @@
     "text-to-sql",
     "data-analysis"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/vercel/oss-data-analyst.git"
-  },
-  "bugs": {
-    "url": "https://github.com/vercel/oss-data-analyst/issues"
-  },
-  "homepage": "https://github.com/vercel/oss-data-analyst#readme",
-  "license": "MIT",
-  "author": "Vercel",
+  "license": "UNLICENSED",
+  "author": "",
   "scripts": {
     "dev": "next dev -p 3000",
     "dev:tunnel": "tsx scripts/dev.tunnel.ts",

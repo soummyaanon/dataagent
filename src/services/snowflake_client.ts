@@ -40,7 +40,7 @@ function getConnectionOptions() {
     schema: config.SNOWFLAKE_SCHEMA,
     warehouse: config.SNOWFLAKE_WAREHOUSE,
     role: config.SNOWFLAKE_ROLE,
-    application: config.SNOWFLAKE_APPLICATION ?? "oss-data-analyst-api",
+    application: config.SNOWFLAKE_APPLICATION ?? "data-agent-api",
     clientSessionKeepAlive: config.SNOWFLAKE_CLIENT_SESSION_KEEP_ALIVE ?? true,
   };
 }
