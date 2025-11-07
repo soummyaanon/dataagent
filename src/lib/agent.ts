@@ -74,18 +74,12 @@ export async function runAgent({
   let phase: Phase = "planning";
   const possibleEntities = await ListEntities();
 
-  // Initialize the model instance from the string identifier
+  // Use gpt-4.1 for reliable multi-phase agentic workflow
   const selectedModel = openai(model);
 
   const result = streamText({
     model: selectedModel,
     messages: convertToModelMessages(messages),
-    providerOptions: {
-      openai: {
-        reasoningSummary: "detailed",
-        reasoningEffort: "medium",
-      },
-    },
     tools: {
       ReadEntityYamlRaw,
       LoadEntitiesBulk,
@@ -155,13 +149,16 @@ export async function runAgent({
       }
 
       if (phase === "planning") {
+        // OPTIMIZATION: Reduce token size - send entity list as comma-separated string
+        // instead of full JSON, and only include 3 example queries instead of all
+        const entityList = possibleEntities.join(", ");
+        const limitedExamples = sqlEvalSet.slice(0, 3);
+
         return {
           system: [
             PLANNING_SPECIALIST_SYSTEM_PROMPT,
-            `<PossibleEntities>${JSON.stringify(
-              possibleEntities
-            )}</PossibleEntities>`,
-            `<VerifiedQueries>${JSON.stringify(sqlEvalSet)}</VerifiedQueries>`,
+            `<PossibleEntities>${entityList}</PossibleEntities>`,
+            `<VerifiedQueries>${JSON.stringify(limitedExamples)}</VerifiedQueries>`,
           ].join("\n"),
           activeTools: [
             "ReadEntityYamlRaw",

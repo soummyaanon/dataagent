@@ -61,14 +61,9 @@ const nextConfig: NextConfig = {
 
   // Next.js 16 specific settings
   experimental: {
-    // Enable React Compiler (optional, for better performance)
-    reactCompiler: false,
-    
-    // Turbopack configuration
-    turbo: {
-      resolveAlias: {
-        canvas: "./empty-module.js",
-      },
+    // Server actions (if you plan to use them)
+    serverActions: {
+      bodySizeLimit: "2mb",
     },
   },
 
@@ -80,11 +75,6 @@ const nextConfig: NextConfig = {
         hostname: "**",
       },
     ],
-  },
-
-  // Server actions (if you plan to use them)
-  serverActions: {
-    bodySizeLimit: "2mb",
   },
 };
 
