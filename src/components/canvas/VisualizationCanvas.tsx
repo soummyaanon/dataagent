@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import {
   ReactFlow,
   Background,
@@ -38,7 +38,25 @@ export function VisualizationCanvas() {
   const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<CanvasEdge>([]);
 
+  // Use a ref to track the previous serialized key to prevent infinite loops
+  const prevKeyRef = useRef<string>("");
+
   useEffect(() => {
+    // Create a stable key from visualization IDs and positions
+    const currentKey = JSON.stringify(
+      visualizations.map((viz) => ({
+        id: viz.id,
+        position: viz.position,
+      }))
+    );
+
+    // Only update nodes if the visualization data actually changed
+    if (prevKeyRef.current === currentKey) {
+      return;
+    }
+
+    prevKeyRef.current = currentKey;
+
     const mappedNodes: CanvasNode[] = visualizations.map((viz, index) => ({
       id: viz.id,
       type: "chart",
@@ -57,7 +75,7 @@ export function VisualizationCanvas() {
     }));
 
     setNodes(mappedNodes);
-  }, [visualizations, removeVisualization, setNodes]);
+  }, [visualizations, setNodes, removeVisualization]);
 
   const handleNodesChange = useCallback(
     (changes: NodeChange<CanvasNode>[]) => {

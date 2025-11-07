@@ -12,6 +12,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { SettingsIcon, XIcon } from "lucide-react";
 import type { VisualizationConfig } from "@/types/visualization";
+import {
+  InteractiveBarChart,
+  InteractiveLineChart,
+  InteractivePieChart,
+  InteractiveScatterChart,
+  InteractiveAreaChart,
+} from "./InteractiveCharts";
 
 interface ChartNodeProps {
   data: {
@@ -20,6 +27,40 @@ interface ChartNodeProps {
     onConfigure?: (id: string) => void;
   };
 }
+
+const renderChart = (visualization: VisualizationConfig) => {
+  const { type, data, config } = visualization;
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+        No data available
+      </div>
+    );
+  }
+
+  switch (type) {
+    case "bar":
+      return <InteractiveBarChart data={data} config={config} />;
+    case "line":
+      return <InteractiveLineChart data={data} config={config} />;
+    case "pie":
+      return <InteractivePieChart data={data} config={config} />;
+    case "scatter":
+      return <InteractiveScatterChart data={data} config={config} />;
+    case "area":
+      return <InteractiveAreaChart data={data} config={config} />;
+    case "composed":
+      // For composed charts, default to bar chart
+      return <InteractiveBarChart data={data} config={config} />;
+    default:
+      return (
+        <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+          Unsupported chart type: {type}
+        </div>
+      );
+  }
+};
 
 export const ChartNode = memo(({ data }: ChartNodeProps) => {
   const { visualization, onDelete, onConfigure } = data;
@@ -65,8 +106,8 @@ export const ChartNode = memo(({ data }: ChartNodeProps) => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex h-[280px] w-full items-center justify-center rounded border border-dashed border-border/60 bg-muted/20 text-sm text-muted-foreground">
-            {visualization.type.toUpperCase()} Chart
+          <div className="h-[280px] w-full rounded bg-background">
+            {renderChart(visualization)}
           </div>
         </CardContent>
       </Card>

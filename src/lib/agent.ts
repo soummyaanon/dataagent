@@ -194,13 +194,9 @@ export async function runAgent({
         activeTools: [
           "SanityCheck",
           "FormatResults",
+          "VisualizeData",
           "ExplainResults",
           "FinalizeReport",
-          "generateBarChart",
-          "generateLineChart",
-          "generatePieChart",
-          "generateScatterPlot",
-          "autoSelectVisualization",
         ],
       };
     },

@@ -1,7 +1,6 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import { nanoid } from "nanoid";
 import type {
   CanvasState,
@@ -22,9 +21,7 @@ interface CanvasStore extends CanvasState {
   importCanvas: (visualizations: VisualizationConfig[]) => void;
 }
 
-export const useCanvasStore = create<CanvasStore>()(
-  persist(
-    (set, get) => ({
+export const useCanvasStore = create<CanvasStore>()((set, get) => ({
       visualizations: new Map(),
       selectedId: null,
       zoom: 1,
@@ -95,29 +92,5 @@ export const useCanvasStore = create<CanvasStore>()(
           selectedId: null,
         });
       },
-    }),
-    {
-      name: "canvas-storage",
-      serialize: (storageState) =>
-        JSON.stringify({
-          ...storageState,
-          state: {
-            ...storageState.state,
-            visualizations: Array.from(
-              storageState.state.visualizations.entries()
-            ),
-          },
-        }),
-      deserialize: (str) => {
-        const parsed = JSON.parse(str);
-        return {
-          ...parsed,
-          state: {
-            ...parsed.state,
-            visualizations: new Map(parsed.state.visualizations),
-          },
-        };
-      },
-    }
-  )
+    })
 );

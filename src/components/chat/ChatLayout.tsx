@@ -28,10 +28,10 @@ import {
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
 import { Action, Actions } from "@/components/ai-elements/actions";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { Response } from "@/components/ai-elements/response";
-import { CopyIcon, GlobeIcon, RefreshCcwIcon, DotIcon } from "lucide-react";
+import { CopyIcon, RefreshCcwIcon, DotIcon, ChevronDownIcon } from "lucide-react";
 import {
   Source,
   Sources,
@@ -58,11 +58,9 @@ import {
 } from "@/components/ai-elements/tool";
 import { Loader } from "@/components/ai-elements/loader";
 import { Shimmer } from "@/components/ai-elements/shimmer";
-import { useCanvasStore } from "@/hooks/useCanvasStore";
-import type { VisualizationConfig } from "@/types/visualization";
-import { VisualizationCanvas } from "@/components/canvas/VisualizationCanvas";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDownIcon } from "lucide-react";
+import { renderTextWithCharts } from "./renderCharts";
+import { VegaLiteChart } from "@/components/charts/VegaLiteChart";
 
 const models = [
   {
@@ -75,30 +73,12 @@ const models = [
   },
 ];
 
-const isVisualizationConfig = (
-  value: unknown
-): value is VisualizationConfig => {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const candidate = value as VisualizationConfig;
-  return (
-    typeof candidate.type === "string" &&
-    typeof candidate.title === "string" &&
-    Array.isArray(candidate.data)
-  );
-};
-
 const ChatBotDemo = () => {
   const [input, setInput] = useState("");
   const [model, setModel] = useState<string>("gpt-4.1");
   const [webSearch, setWebSearch] = useState(false);
   const { messages, sendMessage, status, regenerate } = useChat();
-  const addVisualization = useCanvasStore((state) => state.addVisualization);
-  const processedToolResults = useRef(new Set<string>());
-  const visualizationCount = useCanvasStore((state) => state.visualizations.size);
-  const [isCanvasOpen, setIsCanvasOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   // Determine current phase based on tool calls
   const getCurrentPhase = (messageParts: any[]): "planning" | "building" | "execution" | "reporting" | null => {
@@ -127,66 +107,10 @@ const ChatBotDemo = () => {
     }
   };
 
+  // Set mounted to true after component mounts (client-side only)
   useEffect(() => {
-    messages.forEach((message) => {
-      if (message.role !== "assistant") {
-        return;
-      }
-
-      message.parts.forEach((part, index) => {
-        const key = `${message.id}-${index}`;
-
-        if (
-          processedToolResults.current.has(key) ||
-          !part.type?.startsWith("tool-") ||
-          !("output" in part) ||
-          !part.output ||
-          typeof part.output !== "object"
-        ) {
-          return;
-        }
-
-        const payload = part.output as Record<string, unknown>;
-        const visualizations: VisualizationConfig[] = [];
-
-        if (
-          "visualization" in payload &&
-          isVisualizationConfig(payload.visualization)
-        ) {
-          visualizations.push(payload.visualization);
-        }
-
-        if (
-          "visualizations" in payload &&
-          Array.isArray(payload.visualizations)
-        ) {
-          payload.visualizations.forEach((viz) => {
-            if (isVisualizationConfig(viz)) {
-              visualizations.push(viz);
-            }
-          });
-        }
-
-        if (visualizations.length === 0) {
-          return;
-        }
-
-        visualizations.forEach((viz) => {
-          const { id: _id, ...rest } = viz;
-          addVisualization(rest);
-        });
-
-        processedToolResults.current.add(key);
-      });
-    });
-  }, [messages, addVisualization]);
-
-  // Auto-open canvas when visualizations are added
-  useEffect(() => {
-    if (visualizationCount > 0 && !isCanvasOpen) {
-      setIsCanvasOpen(true);
-    }
-  }, [visualizationCount, isCanvasOpen]);
+    setMounted(true);
+  }, []);
 
   const handleSubmit = (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);
@@ -451,14 +375,34 @@ const ChatBotDemo = () => {
 
                     switch (part.type) {
                       case "text":
+                        const textContent = part.text || "";
+                        const { hasCharts, elements } = renderTextWithCharts(textContent);
+                        
                         return (
                           <Fragment key={`${message.id}-${i}`}>
                             <Message from={message.role}>
                               <MessageContent>
                                 {isStreamingPart && !part.text ? (
                                   <Shimmer>Generating response...</Shimmer>
+                                ) : hasCharts ? (
+                                  <div className="space-y-4">
+                                    {elements.map((element, idx) => {
+                                      if (element.type === "chart" && element.spec) {
+                                        // Ensure spec is a plain object before passing
+                                        const sanitizedSpec = JSON.parse(JSON.stringify(element.spec));
+                                        return (
+                                          <div key={idx} className="w-full my-4">
+                                            <VegaLiteChart spec={sanitizedSpec} />
+                                          </div>
+                                        );
+                                      }
+                                      return (
+                                        <Response key={idx}>{element.content}</Response>
+                                      );
+                                    })}
+                                  </div>
                                 ) : (
-                                  <Response>{part.text}</Response>
+                                  <Response>{textContent}</Response>
                                 )}
                               </MessageContent>
                             </Message>
@@ -930,29 +874,6 @@ const ChatBotDemo = () => {
           <ConversationScrollButton />
         </Conversation>
 
-        {/* Canvas for visualizations - appears when agent creates visualizations */}
-        {visualizationCount > 0 && (
-          <Collapsible open={isCanvasOpen} onOpenChange={setIsCanvasOpen} className="mt-4 border-t">
-            <CollapsibleTrigger className="flex w-full items-center justify-between p-4 hover:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold">Visualizations</h3>
-                <span className="text-xs text-muted-foreground">
-                  {visualizationCount} {visualizationCount === 1 ? "chart" : "charts"}
-                </span>
-              </div>
-              <ChevronDownIcon
-                className={`h-4 w-4 text-muted-foreground transition-transform ${
-                  isCanvasOpen ? "rotate-180" : ""
-                }`}
-              />
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="h-[400px] border-t">
-                <VisualizationCanvas />
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        )}
 
         <PromptInput
           onSubmit={handleSubmit}

@@ -41,7 +41,7 @@ const createVisualizationResult = (
 
 export const generateBarChartTool = tool({
   description:
-    "Generate a bar chart to compare values across discrete categories.",
+    "Generate a bar chart to compare values across discrete categories. Use this tool when the user explicitly requests a bar chart, barchart, or wants to compare categories. Pass the data array from FormatResults preview. The chart will be automatically displayed in the canvas.",
   inputSchema: baseVisualizationSchema.extend({
     type: z.literal("bar"),
   }),
@@ -65,7 +65,7 @@ export const generateLineChartTool = tool({
 
 export const generatePieChartTool = tool({
   description:
-    "Generate a pie chart to show the proportional contribution of categories to a whole.",
+    "Generate a pie chart to show the proportional contribution of categories to a whole. Use this tool when the user explicitly requests a pie chart, pie, or wants to show proportions/percentages. Pass the data array from FormatResults preview. The chart will be automatically displayed in the canvas.",
   inputSchema: baseVisualizationSchema.extend({
     type: z.literal("pie"),
   }),
