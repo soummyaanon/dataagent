@@ -219,6 +219,18 @@ const ChatBotDemo = () => {
               const toolParts = message.parts.filter((part) => part.type?.startsWith("tool-"));
               const hasMultipleTools = toolParts.length > 1;
 
+              // Check if FinalizeReport is complete to determine visibility
+              const finalizeReportComplete = message.parts.some(
+                (part) =>
+                  part.type?.startsWith("tool-FinalizeReport") &&
+                  "output" in part &&
+                  part.output &&
+                  typeof part.output === "object" &&
+                  "narrative" in part.output &&
+                  typeof (part.output as { narrative: string }).narrative === "string" &&
+                  (part.output as { narrative: string }).narrative.length > 0
+              );
+
               return (
                 <div key={message.id}>
                   {message.role === "assistant" &&
@@ -246,8 +258,8 @@ const ChatBotDemo = () => {
                       </Sources>
                     )}
 
-                  {/* Show Chain of Thought for multi-step reasoning */}
-                  {message.role === "assistant" && hasMultipleTools && (
+                  {/* Show Chain of Thought for multi-step reasoning - hide when FinalizeReport is complete */}
+                  {message.role === "assistant" && hasMultipleTools && !finalizeReportComplete && (
                     <ChainOfThought className="mb-4" defaultOpen={isStreaming}>
                       <ChainOfThoughtHeader>
                         {isStreaming ? (
@@ -287,8 +299,104 @@ const ChatBotDemo = () => {
                     </ChainOfThought>
                   )}
 
-                  {message.parts.map((part, i) => {
-                    const isLastPart = i === message.parts.length - 1;
+                  {(() => {
+                    // Use the finalizeReportComplete check from above scope
+
+                    // Extract narrative from FinalizeReport tool input while streaming
+                    const getStreamingNarrative = (): string | null => {
+                      const finalizeReportPart = message.parts.find(
+                        (part) =>
+                          part.type?.startsWith("tool-FinalizeReport") &&
+                          "input" in part &&
+                          "state" in part &&
+                          (part.state === "input-streaming" || part.state === "input-available")
+                      );
+
+                      if (finalizeReportPart && "input" in finalizeReportPart) {
+                        const input = finalizeReportPart.input;
+                        if (
+                          typeof input === "object" &&
+                          input !== null &&
+                          "narrative" in input &&
+                          typeof input.narrative === "string"
+                        ) {
+                          return input.narrative;
+                        }
+                      }
+                      return null;
+                    };
+
+                    const streamingNarrative = isStreaming ? getStreamingNarrative() : null;
+
+                    // Filter out tool parts if FinalizeReport is complete (we'll show them in collapsible)
+                    const partsToRender = finalizeReportComplete
+                      ? message.parts.filter(
+                          (part) =>
+                            !part.type?.startsWith("tool-") ||
+                            part.type?.startsWith("tool-FinalizeReport")
+                        )
+                      : message.parts;
+
+                    return (
+                      <>
+                        {/* Collapsible tool calls section - shown when FinalizeReport is complete */}
+                        {finalizeReportComplete && (
+                          <Collapsible defaultOpen={false} className="mb-4">
+                            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border border-border bg-muted/50 p-3 text-sm font-medium hover:bg-muted transition-colors">
+                              <span className="text-muted-foreground">
+                                View Tool Calls ({toolParts.length})
+                              </span>
+                              <ChevronDownIcon className="h-4 w-4 text-muted-foreground transition-transform data-[state=open]:rotate-180" />
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <div className="mt-2 space-y-2">
+                                {message.parts
+                                  .filter(
+                                    (part) =>
+                                      part.type?.startsWith("tool-") &&
+                                      !part.type?.startsWith("tool-FinalizeReport")
+                                  )
+                                  .map((part, i) => {
+                                    if (
+                                      !part.type.startsWith("tool-") ||
+                                      !("state" in part) ||
+                                      !("input" in part)
+                                    ) {
+                                      return null;
+                                    }
+
+                                    const toolType = part.type as `tool-${string}`;
+                                    const toolName = toolType.replace("tool-", "");
+
+                                    return (
+                                      <Tool key={`${message.id}-tool-collapsed-${i}`}>
+                                        <ToolHeader type={toolType} state={part.state} />
+                                        <ToolContent>
+                                          <ToolInput input={part.input} />
+                                          <ToolOutput
+                                            output={
+                                              part.output ? (
+                                                <Response>
+                                                  {typeof part.output === "string"
+                                                    ? part.output
+                                                    : JSON.stringify(part.output, null, 2)}
+                                                </Response>
+                                              ) : null
+                                            }
+                                            errorText={part.errorText}
+                                          />
+                                        </ToolContent>
+                                      </Tool>
+                                    );
+                                  })}
+                              </div>
+                            </CollapsibleContent>
+                          </Collapsible>
+                        )}
+
+                        {/* Render message parts */}
+                        {partsToRender.map((part, i) => {
+                          const isLastPart = i === partsToRender.length - 1;
                     const isStreamingPart = isStreaming && isLastPart && message.id === messages.at(-1)?.id;
 
                     switch (part.type) {
@@ -349,6 +457,11 @@ const ChatBotDemo = () => {
                           const toolName = toolType.replace("tool-", "");
                           const isToolStreaming = isStreamingPart && (part.state === "input-streaming" || part.state === "input-available");
 
+                                // Don't render FinalizeReport tool UI if we're showing the narrative separately
+                                if (toolName === "FinalizeReport" && finalizeReportComplete) {
+                                  return null;
+                                }
+
                           return (
                             <Tool key={`${message.id}-${i}`}>
                               <ToolHeader type={toolType} state={part.state} />
@@ -375,6 +488,9 @@ const ChatBotDemo = () => {
                         return null;
                     }
                   })}
+                      </>
+                    );
+                  })()}
                 {/* Display narrative from FinalizeReport as final result with proper streaming */}
                 {message.role === "assistant" &&
                   (() => {
@@ -386,62 +502,87 @@ const ChatBotDemo = () => {
                       return null;
                     }
 
-                    // Find FinalizeReport by checking for the specific output structure
+                    // Find FinalizeReport part
                     const finalizeReportPart = message.parts.find(
                       (part) =>
-                        part.type?.startsWith("tool-") &&
-                        "output" in part &&
-                        part.output &&
-                        typeof part.output === "object" &&
-                        "narrative" in part.output &&
-                        "sql" in part.output &&
-                        "confidence" in part.output
+                        part.type?.startsWith("tool-FinalizeReport") &&
+                        "input" in part &&
+                        "state" in part
                     );
 
-                    if (finalizeReportPart && "output" in finalizeReportPart) {
-                      const output = finalizeReportPart.output as {
-                        narrative: string;
-                      };
-                      const isFinalizeReportStreaming = 
+                    if (!finalizeReportPart) {
+                      return null;
+                    }
+
+                    // Extract narrative from input (streaming) or output (complete)
+                    let narrative: string | null = null;
+                    let isStreamingNarrative = false;
+
+                    // Check for narrative in tool input (while streaming)
+                    if (
+                      "input" in finalizeReportPart &&
+                      finalizeReportPart.input &&
+                      typeof finalizeReportPart.input === "object" &&
+                      "narrative" in finalizeReportPart.input &&
+                      typeof finalizeReportPart.input.narrative === "string"
+                    ) {
+                      narrative = finalizeReportPart.input.narrative;
+                      isStreamingNarrative =
                         isStreaming && 
                         (finalizeReportPart.state === "input-streaming" || 
-                         finalizeReportPart.state === "input-available") &&
-                        !output.narrative;
-                      const isLastMessage = message.id === messages.at(-1)?.id;
+                          finalizeReportPart.state === "input-available");
+                    }
 
-                      if (output.narrative || isFinalizeReportStreaming) {
-                        return (
-                          <Message from={message.role}>
-                            <MessageContent>
-                              {isFinalizeReportStreaming ? (
-                                <Shimmer>Generating report...</Shimmer>
-                              ) : output.narrative ? (
-                                <Response>{output.narrative}</Response>
+                    // Check for narrative in tool output (when complete)
+                    if (
+                      !narrative &&
+                      "output" in finalizeReportPart &&
+                      finalizeReportPart.output &&
+                      typeof finalizeReportPart.output === "object" &&
+                      "narrative" in finalizeReportPart.output &&
+                      typeof finalizeReportPart.output.narrative === "string"
+                    ) {
+                      narrative = finalizeReportPart.output.narrative;
+                    }
+
+                    const isLastMessage = message.id === messages.at(-1)?.id;
+
+                    if (narrative || isStreamingNarrative) {
+                      return (
+                        <Message from={message.role}>
+                          <MessageContent>
+                            {isStreamingNarrative ? (
+                              narrative ? (
+                                <Response>{narrative}</Response>
                               ) : (
-                                <Shimmer>Processing...</Shimmer>
-                              )}
-                            </MessageContent>
-                            {output.narrative && isLastMessage && !isStreaming && (
-                              <Actions className="mt-2">
-                                <Action
-                                  onClick={() => regenerate()}
-                                  label="Retry"
-                                >
-                                  <RefreshCcwIcon className="size-3" />
-                                </Action>
-                                <Action
-                                  onClick={() =>
-                                    navigator.clipboard.writeText(output.narrative)
-                                  }
-                                  label="Copy"
-                                >
-                                  <CopyIcon className="size-3" />
-                                </Action>
-                              </Actions>
+                                <Shimmer>Generating report...</Shimmer>
+                              )
+                            ) : narrative ? (
+                              <Response>{narrative}</Response>
+                            ) : (
+                              <Shimmer>Processing...</Shimmer>
                             )}
-                          </Message>
-                        );
-                      }
+                          </MessageContent>
+                          {narrative && isLastMessage && !isStreaming && (
+                            <Actions className="mt-2">
+                              <Action
+                                onClick={() => regenerate()}
+                                label="Retry"
+                              >
+                                <RefreshCcwIcon className="size-3" />
+                              </Action>
+                              <Action
+                                onClick={() =>
+                                  navigator.clipboard.writeText(narrative!)
+                                }
+                                label="Copy"
+                              >
+                                <CopyIcon className="size-3" />
+                              </Action>
+                            </Actions>
+                          )}
+                        </Message>
+                      );
                     }
                     return null;
                   })()}
