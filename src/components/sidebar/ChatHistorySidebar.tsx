@@ -2,9 +2,22 @@
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { HistoryIcon, MessageSquareIcon, PlusIcon } from "lucide-react";
+import { HistoryIcon, MessageSquareIcon, PlusIcon, MoonIcon, SunIcon } from "lucide-react";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 export function ChatHistorySidebar() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
+
   return (
     <div className="flex h-full flex-col p-4">
       <div className="mb-4 flex items-center justify-between">
@@ -35,6 +48,27 @@ export function ChatHistorySidebar() {
           </div>
         </div>
       </ScrollArea>
+
+      <div className="mt-auto pt-4 border-t">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start gap-2"
+          onClick={toggleTheme}
+        >
+          {mounted && theme === "dark" ? (
+            <>
+              <SunIcon className="h-4 w-4" />
+              <span className="text-sm">Light Mode</span>
+            </>
+          ) : (
+            <>
+              <MoonIcon className="h-4 w-4" />
+              <span className="text-sm">Dark Mode</span>
+            </>
+          )}
+        </Button>
+      </div>
     </div>
   );
 }

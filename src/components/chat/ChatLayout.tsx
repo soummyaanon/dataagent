@@ -279,18 +279,48 @@ const ChatBotDemo = () => {
                             ? "complete"
                             : "pending";
 
-                          // Format tool name for display
-                          const formatToolName = (name: string): string => {
-                            return name
+                          // Create descriptive label based on tool name and input
+                          const getToolLabel = (name: string, input: unknown): string => {
+                            const baseLabel = name
                               .replace(/([A-Z])/g, " $1")
                               .replace(/^./, (str) => str.toUpperCase())
                               .trim();
+
+                            // Add context from tool input if available
+                            if (input && typeof input === "object" && input !== null) {
+                              if (name === "SearchCatalog" && "query" in input && typeof input.query === "string") {
+                                return `Searching catalog for: "${input.query}"`;
+                              }
+                              if (name === "SearchSchema" && "keyword" in input && typeof input.keyword === "string") {
+                                return `Searching schema for: "${input.keyword}"`;
+                              }
+                              if (name === "ReadEntityYamlRaw" && "name" in input && typeof input.name === "string") {
+                                return `Reading entity: ${input.name}`;
+                              }
+                              if (name === "AssessEntityCoverage" && "entity" in input && typeof input.entity === "string") {
+                                return `Assessing coverage: ${input.entity}`;
+                              }
+                              if (name === "ScanEntityProperties" && "entity" in input && typeof input.entity === "string") {
+                                return `Scanning properties: ${input.entity}`;
+                              }
+                              if (name === "ClarifyIntent" && "question" in input && typeof input.question === "string") {
+                                return `Clarifying: ${input.question}`;
+                              }
+                              if (name === "LoadEntitiesBulk" && "names" in input && Array.isArray(input.names)) {
+                                return `Loading ${input.names.length} entities`;
+                              }
+                            }
+
+                            return baseLabel;
                           };
+
+                          const toolInput = "input" in part ? part.input : undefined;
+                          const label = getToolLabel(toolName, toolInput);
 
                           return (
                             <ChainOfThoughtStep
                               key={`${message.id}-tool-${idx}`}
-                              label={formatToolName(toolName)}
+                              label={label}
                               status={toolStatus}
                             />
                           );
@@ -341,57 +371,59 @@ const ChatBotDemo = () => {
                       <>
                         {/* Collapsible tool calls section - shown when FinalizeReport is complete */}
                         {finalizeReportComplete && (
-                          <Collapsible defaultOpen={false} className="mb-4">
-                            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border border-border bg-muted/50 p-3 text-sm font-medium hover:bg-muted transition-colors">
-                              <span className="text-muted-foreground">
-                                View Tool Calls ({toolParts.length})
-                              </span>
-                              <ChevronDownIcon className="h-4 w-4 text-muted-foreground transition-transform data-[state=open]:rotate-180" />
-                            </CollapsibleTrigger>
-                            <CollapsibleContent>
-                              <div className="mt-2 space-y-2">
-                                {message.parts
-                                  .filter(
-                                    (part) =>
-                                      part.type?.startsWith("tool-") &&
-                                      !part.type?.startsWith("tool-FinalizeReport")
-                                  )
-                                  .map((part, i) => {
-                                    if (
-                                      !part.type.startsWith("tool-") ||
-                                      !("state" in part) ||
-                                      !("input" in part)
-                                    ) {
-                                      return null;
-                                    }
+                          <div className="flex w-full justify-start mb-4">
+                            <Collapsible defaultOpen={false} className="max-w-[80%]">
+                              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border border-border bg-muted/50 p-3 text-sm font-medium hover:bg-muted transition-colors">
+                                <span className="text-muted-foreground">
+                                  View Tool Calls ({toolParts.length})
+                                </span>
+                                <ChevronDownIcon className="h-4 w-4 text-muted-foreground transition-transform data-[state=open]:rotate-180" />
+                              </CollapsibleTrigger>
+                              <CollapsibleContent>
+                                <div className="mt-2 space-y-2">
+                                  {message.parts
+                                    .filter(
+                                      (part) =>
+                                        part.type?.startsWith("tool-") &&
+                                        !part.type?.startsWith("tool-FinalizeReport")
+                                    )
+                                    .map((part, i) => {
+                                      if (
+                                        !part.type.startsWith("tool-") ||
+                                        !("state" in part) ||
+                                        !("input" in part)
+                                      ) {
+                                        return null;
+                                      }
 
-                                    const toolType = part.type as `tool-${string}`;
-                                    const toolName = toolType.replace("tool-", "");
+                                      const toolType = part.type as `tool-${string}`;
+                                      const toolName = toolType.replace("tool-", "");
 
-                                    return (
-                                      <Tool key={`${message.id}-tool-collapsed-${i}`}>
-                                        <ToolHeader type={toolType} state={part.state} />
-                                        <ToolContent>
-                                          <ToolInput input={part.input} />
-                                          <ToolOutput
-                                            output={
-                                              part.output ? (
-                                                <Response>
-                                                  {typeof part.output === "string"
-                                                    ? part.output
-                                                    : JSON.stringify(part.output, null, 2)}
-                                                </Response>
-                                              ) : null
-                                            }
-                                            errorText={part.errorText}
-                                          />
-                                        </ToolContent>
-                                      </Tool>
-                                    );
-                                  })}
-                              </div>
-                            </CollapsibleContent>
-                          </Collapsible>
+                                      return (
+                                        <Tool key={`${message.id}-tool-collapsed-${i}`}>
+                                          <ToolHeader type={toolType} state={part.state} />
+                                          <ToolContent>
+                                            <ToolInput input={part.input} />
+                                            <ToolOutput
+                                              output={
+                                                part.output ? (
+                                                  <Response>
+                                                    {typeof part.output === "string"
+                                                      ? part.output
+                                                      : JSON.stringify(part.output, null, 2)}
+                                                  </Response>
+                                                ) : null
+                                              }
+                                              errorText={part.errorText}
+                                            />
+                                          </ToolContent>
+                                        </Tool>
+                                      );
+                                    })}
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          </div>
                         )}
 
                         {/* Render message parts */}
